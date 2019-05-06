@@ -1,0 +1,13 @@
+worker:
+  # replica: 2
+  env:
+    - name: EXTRA_PIP_PACKAGES
+      value: scipy tensorflow --upgrade
+
+jupyter:
+  enabled: true
+  env:
+    - name: EXTRA_CONDA_PACKAGES
+      value: matplotlib -c conda-forge
+    - name: EXTRA_PIP_PACKAGES
+      value: scipy tensorflow --upgrade
