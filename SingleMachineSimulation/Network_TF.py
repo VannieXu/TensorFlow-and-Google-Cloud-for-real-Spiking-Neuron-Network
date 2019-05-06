@@ -258,3 +258,32 @@ for i in range(19999):
     if (i+1)%2000 == 0:
         print('step %d finished'%(i+1))
 
+P_granular_pyramidal = np.array(P_granular_pyramidal)
+P_granular_basket = np.array(P_granular_basket)
+P_supra_pyramidal = np.array(P_supra_pyramidal)
+P_supra_basket = np.array(P_supra_basket)
+
+Spike_granular_pyramidal = np.zeros((n_exc,20))
+Spike_granular_basket = np.zeros((n_inter,20))
+Spike_supra_pyramidal = np.zeros((n_exc,20))
+Spike_supra_basket = np.zeros((n_inter,20))
+
+for i in range(20):
+    for j in range(n_exc):
+        ind,_=signal.find_peaks(P_granular_pyramidal[i*1000:(i+1)*1000,j],height=50)
+        Spike_granular_pyramidal[j,i]=Spike_granular_pyramidal[j,i]+ind.size
+        ind,_=signal.find_peaks(P_supra_pyramidal[i*1000:(i+1)*1000,j],height=50)
+        Spike_supra_pyramidal[j,i]=Spike_supra_pyramidal[j,i]+ind.size
+
+for i in range(20):
+    for j in range(n_inter):
+        ind,_=signal.find_peaks(P_granular_basket[i*1000:(i+1)*1000,j],height=50)
+        Spike_granular_basket[j,i]=Spike_granular_basket[j,i]+ind.size
+        ind,_=signal.find_peaks(P_supra_basket[i*1000:(i+1)*1000,j],height=50)
+        Spike_supra_basket[j,i]=Spike_supra_basket[j,i]+ind.size
+
+
+np.savetxt('GP.csv',Spike_granular_pyramidal)
+np.savetxt('GB.csv',Spike_granular_basket)
+np.savetxt('SP.csv',Spike_supra_pyramidal)
+np.savetxt('SB.csv',Spike_supra_basket)
