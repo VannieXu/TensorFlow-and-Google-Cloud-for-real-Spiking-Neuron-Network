@@ -9,12 +9,6 @@ from dask.distributed import Client, config
 
 config['scheduler-address']
 client = Client()
-info = client.scheduler_info()
-workers = iter(info['workers'])
-addr = []
-for i in range(len(info['workers'])):
-    w = next(workers)
-    addr.append(w)
     
 def weight(inter, exc):
     n_inter = inter * inter
