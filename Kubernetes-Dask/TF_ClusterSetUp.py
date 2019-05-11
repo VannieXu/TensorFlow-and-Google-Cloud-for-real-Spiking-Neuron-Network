@@ -30,6 +30,6 @@ def work(addr,index):
     elif index == 1:
        # Computation in worker1
 
-worker_task = [client.submit(work,addr[i],i) for i in range(len(addr)]
+worker_task = [client.submit(work,addr[i],i) for i in range(len(addr))]
 worker0_result = worker_task[0].result()
 worker1_result = worker_task[1].result()
