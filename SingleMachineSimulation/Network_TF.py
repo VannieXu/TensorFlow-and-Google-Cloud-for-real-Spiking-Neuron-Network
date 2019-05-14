@@ -3,12 +3,15 @@ import numpy as np
 import itertools
 import scipy.spatial.distance
 
+# Interneuron array:24x24
+# Excitatory neuron array:48x48
 inter = 24
 exc = 48
 
 n_inter = inter*inter
 n_exc = exc*exc
 
+# Create connection matrix
 x = list(itertools.product(range(exc),repeat=2))
 d = scipy.spatial.distance.pdist(x,'sqeuclidean')
 y = scipy.spatial.distance.squareform(d)
@@ -67,6 +70,7 @@ Pie_vertical[x1,y1]=0
 
 sess = tf.InteractiveSession()
 
+# Synaptic current delay
 class SynapticDelay(tf.contrib.rnn.RNNCell):
 
     def __init__(self,num_units):
@@ -77,6 +81,7 @@ class SynapticDelay(tf.contrib.rnn.RNNCell):
         newstate = tf.concat([inputs,state[:,0:-1]],1)
         return output,newstate
 
+# Cell Dynamic
 class NewCell(tf.contrib.rnn.RNNCell):
 
     def __init__(self, num_state):
@@ -128,9 +133,13 @@ class NewCell(tf.contrib.rnn.RNNCell):
 
         return output,nextstate
 
+# 5 parameters needs to be used for cell dynamic
 cell = NewCell(5)
-delay = SynapticDelay(100)
+# Number of timesteps used to delay synaptic current
+delay_e = SynapticDelay(300)
+delay_i = SyanpticDelay(1200)
 
+# Placeholders used to get further input from numpy
 granular_pyramidal_input = tf.placeholder(shape=(n_exc,1),dtype=tf.float32)
 granular_pyramidal_state = tf.placeholder(shape=(n_exc,5),dtype=tf.float32)
 granular_pyramidal_delay = tf.placeholder(shape=(n_exc,300),dtype=tf.float32)
@@ -147,18 +156,20 @@ supra_basket_input = tf.placeholder(shape=(n_inter,1),dtype=tf.float32)
 supra_basket_state = tf.placeholder(shape=(n_inter,5),dtype=tf.float32)
 supra_basket_delay = tf.placeholder(shape=(n_inter,1200),dtype=tf.float32)
 
+# Cell dynamic and synaptic current for one timestep
 (granular_pyramidal_output,granular_pyramidal_nextstate) = cell(granular_pyramidal_input,granular_pyramidal_state)
-(granular_pyramidal_synout,granular_pyramidal_synstate) = delay(granular_pyramidal_output,granular_pyramidal_delay)
+(granular_pyramidal_synout,granular_pyramidal_synstate) = delay_e(granular_pyramidal_output,granular_pyramidal_delay)
 
 (granular_basket_output,granular_basket_nextstate) = cell(granular_basket_input,granular_basket_state)
-(granular_basket_synout,granular_basket_synstate) = delay(granular_basket_output,granular_basket_delay)
+(granular_basket_synout,granular_basket_synstate) = delay_i(granular_basket_output,granular_basket_delay)
 
 (supra_pyramidal_output,supra_pyramidal_nextstate) = cell(supra_pyramidal_input,supra_pyramidal_state)
-(supra_pyramidal_synout,supra_pyramidal_synstate) = delay(supra_pyramidal_output,supra_pyramidal_delay)
+(supra_pyramidal_synout,supra_pyramidal_synstate) = delay_e(supra_pyramidal_output,supra_pyramidal_delay)
 
 (supra_basket_output,supra_basket_nextstate) = cell(supra_basket_input,supra_basket_state)
-(supra_basket_synout,supra_basket_synstate) = delay(supra_basket_output,supra_basket_delay)
+(supra_basket_synout,supra_basket_synstate) = delay_i(supra_basket_output,supra_basket_delay)
 
+# Between and within layer synaptic connection
 granular_ee = tf.layers.dense(tf.reshape(granular_pyramidal_synout,(1,n_exc)),n_exc,kernel_initializer=tf.constant_initializer(Pee_granular))
 granular_ei = tf.layers.dense(tf.reshape(granular_pyramidal_synout,(1,n_exc)),n_inter,kernel_initializer=tf.constant_initializer(Pie_granular))
 granular_ie = tf.layers.dense(tf.reshape(granular_basket_synout,(1,n_inter)),n_exc,
@@ -176,12 +187,14 @@ Layer_ei = tf.reshape(granular_pyramidal_synout,(exc,exc))
 granular_supra_ei = tf.layers.dense(tf.transpose(Layer_ei[:,::2]),inter,
                                     kernel_initializer=tf.constant_initializer(np.transpose(Pie_vertical)))
 
+# Total synaptic current for each neuron in one timestep
 granular_pyramidal = tf.add(granular_ee,granular_ie)
 granular_basket = tf.add(granular_ei,granular_ii)
 
 supra_pyramidal = tf.add(tf.add(supra_ee,supra_ie),tf.reshape(granular_supra_ee,(1,n_exc)))
 supra_basket = tf.add(tf.add(supra_ii,supra_ei),tf.reshape(granular_supra_ei,(1,n_inter)))
 
+# Input current
 Input_granular_pyramidal = np.zeros((n_exc,1))
 y = [int(exc*i+(exc/2-1)) for i in range(exc)]
 Input_granular_pyramidal[y] = 8
@@ -191,6 +204,7 @@ Input_granular_basket[y] = 8
 Input_supra_pyramidal = np.zeros((n_exc,1))
 Input_supra_basket = np.zeros((n_inter,1))
 
+# Initial condition
 V_init = -60
 G_init = 0
 F_init = 0
@@ -210,6 +224,7 @@ delay_supra_basket = np.zeros((n_inter,1200))
 
 sess.run(tf.global_variables_initializer())
 
+# The first timestep and save cell potential into numpy array
 P_granular_pyramidal = []
 P_granular_basket = []
 P_supra_pyramidal = []
@@ -229,6 +244,7 @@ P_granular_basket.append(state_granular_basket[:,0])
 P_supra_pyramidal.append(state_supra_pyramidal[:,0])
 P_supra_basket.append(state_supra_basket[:,0])
 
+# Run the following timestep and save cell potential 
 for i in range(19999):
     Input_granular_pyramidal1 = Input_granular_pyramidal - np.transpose(Input_granular_pyramidal2)
     Input_granular_basket1 = Input_granular_basket - np.transpose(Input_granular_basket2)
@@ -258,6 +274,7 @@ for i in range(19999):
     if (i+1)%2000 == 0:
         print('step %d finished'%(i+1))
 
+# Extract spikings in every 1000 steps and save the number of spiking
 P_granular_pyramidal = np.array(P_granular_pyramidal)
 P_granular_basket = np.array(P_granular_basket)
 P_supra_pyramidal = np.array(P_supra_pyramidal)
