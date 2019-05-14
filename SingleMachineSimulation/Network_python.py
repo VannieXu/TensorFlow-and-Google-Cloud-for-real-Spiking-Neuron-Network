@@ -2,12 +2,15 @@ import numpy as np
 import itertools
 import scipy.spatial.distance
 
+# Interneuron array: 24x24
+# Excitatory neuron array: 48x48
 inter = 24
 exc = 48
 
 n_inter = inter*inter
 n_exc = exc*exc
 
+# Create synaptic connection matrix
 x = list(itertools.product(range(exc),repeat=2))
 d = scipy.spatial.distance.pdist(x,'sqeuclidean')
 y = scipy.spatial.distance.squareform(d)
@@ -64,6 +67,7 @@ rand_vertical_ie = np.random.rand(exc,inter)
 x1,y1 = np.where(Pie_vertical-rand_vertical_ie<0)
 Pie_vertical[x1,y1]=0
 
+# Function for cell dynamic
 def cell_dynamic(initial_value,Iext):
     V, G, F, W, B = initial_value[:,0],initial_value[:,1],initial_value[:,2],initial_value[:,3],initial_value[:,4]
     dt = 0.01
@@ -107,11 +111,13 @@ def cell_dynamic(initial_value,Iext):
 
     return np.transpose(np.array([V,G,F,W,B])),output
 
+# Function for synaptic current delay
 def Synaptic_Delay(Current,Syn_in):
     output = Current[:,-1]
     nextstate = np.concatenate((np.transpose(np.array([Syn_in])),Current[:,0:-1]),axis=1)
     return output,nextstate
 
+# Initial value for cell dynamic
 V_init = -60
 G_init = 0
 F_init = 0
@@ -119,11 +125,13 @@ W_init = 1 / (1 + np.exp(-2 * 0.055 * (V_init + 35)))
 B_init = 1 / (1 + np.exp(2 * 0.1 * (V_init + 70)))
 cell_init = np.array([V_init, G_init, F_init, W_init, B_init])
 
+# Array to save cell potential
 P_granular_pyramidal = []
 P_granular_basket = []
 P_supra_pyramidal = []
 P_supra_basket = []
 
+# Initial condition
 state_granular_pyramidal = np.array([cell_init for _ in range(n_exc)])
 state_granular_basket = np.array([cell_init for _ in range(n_inter)])
 state_supra_pyramidal = np.array([cell_init for _ in range(n_exc)])
@@ -134,6 +142,7 @@ delay_granular_basket = np.zeros((n_inter,1200))
 delay_supra_pyramidal = np.zeros((n_exc,300))
 delay_supra_basket = np.zeros((n_inter,1200))
 
+# Input current
 Input_granular_pyramidal = np.zeros(n_exc)
 y = [int(exc*i+(exc/2-1)) for i in range(exc)]
 Input_granular_pyramidal[y] = 8
@@ -146,7 +155,7 @@ Input_supra_basket = np.zeros(n_inter)
 Input_granular_pyramidal1 = Input_granular_pyramidal
 Input_granular_basket1 = Input_granular_basket
 
-
+# Run the iteration for 20000 timesteps
 for i in range(20000):
     state_granular_pyramidal, granular_pyramidal_output = cell_dynamic(state_granular_pyramidal,Input_granular_pyramidal1)
     state_granular_basket, granular_basket_output = cell_dynamic(state_granular_basket,Input_granular_basket1)
@@ -186,6 +195,7 @@ for i in range(20000):
     if i%2000 == 0:
         print('step %d finished'%i)
 
+# Extract spiking in every 1000 timesteps and save the number of spikes
 P_granular_pyramidal = np.array(P_granular_pyramidal)
 P_granular_basket = np.array(P_granular_basket)
 P_supra_pyramidal = np.array(P_supra_pyramidal)
