@@ -5,6 +5,7 @@ import scipy.spatial.distance
 import dask
 import time
 
+# Get a dask cluster
 from dask.distributed import Client, config
 
 config['scheduler-address']
@@ -204,6 +205,7 @@ def main(i,e):
 
     return P_granular_pyramidal,P_granular_basket,P_supra_pyramidal,P_supra_basket
 
+# Use .compute() to conduct parallel computing in the cluster
 t0 = time.time()
 main = dask.delayed(main)
 m = main(24,48)
