@@ -4,10 +4,13 @@ import scipy.spatial.distance
 
 import tensorflow as tf
 
+# Get a dask cluster
 from dask.distributed import Client, config
 
 config['scheduler-address']
 client = Client()
+
+# Get ip addresses for each computing instances in the dask cluster
 info = client.scheduler_info()
 workers = iter(info['workers'])
 addr = []
@@ -143,7 +146,7 @@ class NewCell(tf.contrib.rnn.RNNCell):
 
         return output, nextstate
 
-
+# Computation graph of granular layer cell dynamic
 def granular(Init):
     inter = 12
     exc = 24
@@ -185,7 +188,7 @@ def granular(Init):
     syn = p_syn, g_syn
     return out, syn
 
-
+# Computation graph of supragranular layer cell dynamic
 def supra(Init):
     inter = 12
     exc = 24
@@ -271,7 +274,7 @@ syn = np.zeros(n_exc, dtype=float), np.zeros(n_inter, dtype=float), np.zeros(n_e
                                                                                                            dtype=float)
 w = weight(12, 24)
 
-
+# Computation graph of synaptic connection
 def connection(weight, syn):
     inter = 12
     exc = 24
@@ -322,6 +325,7 @@ def connection(weight, syn):
 
 import time
 
+# Submit three computation graphs to three different instances at every timestep and get the output
 t0 = time.time()
 for i in range(100):
     layer_g = client.submit(granular, In_g, workers=addr[0])
