@@ -2,10 +2,13 @@ import numpy as np
 import itertools
 import scipy.spatial.distance
 
+# Get a dask cluster
 from dask.distributed import Client, config
 
 config['scheduler-address']
 client = Client()
+
+# Get the ip addresses of each computing instance and add port to each ip
 info = client.scheduler_info()
 workers = iter(info['workers'])
 addr = []
@@ -17,6 +20,7 @@ for i in range(len(info['workers'])):
     dask_addr.append(w)
     addr.append(addrs)
  
+# Define the computation graph as usual and use the ip:port address to create TensorFlow cluster
 def work(addr,index):
     cluster = tf.train.ClusterSpec({"worker": addr})
     server = tf.train.Server(cluster, job_name="worker", task_index=index)
