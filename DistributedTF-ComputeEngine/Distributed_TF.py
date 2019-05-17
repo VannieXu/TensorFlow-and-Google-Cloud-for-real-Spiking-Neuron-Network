@@ -5,17 +5,22 @@ import numpy as np
 import time
 
 worker_hosts = ["10.142.0.16:2222", "10.142.0.17:2223"]
+# get internal ips of each instance from Google Cloud Compute Engine
 # worker_hosts = ["ip1:port","ip2:port"]
 # parameter_server = ["ip:port"]
 
+# Set up a TensorFlow cluster
 cluster = tf.train.ClusterSpec({"worker": worker_hosts})
 # cluster = tf.train.ClusterSpec({"worker": worker_hosts, "ps": parameter_server})
 
+# FLAGS need to be included when run the script using command line
 tf.flags.DEFINE_string("job_name", "", "'worker or ps")
 tf.flags.DEFINE_integer("task_index", 0, "Index of task")
 FLAGS = tf.flags.FLAGS
 server = tf.train.Server(cluster, job_name=FLAGS.job_name, task_index=FLAGS.task_index)
 
+# Define computation graph as usual
+# Put operations into desired instance
 inter = 24
 exc = 48
 
@@ -243,6 +248,8 @@ delay_supra_basket = np.zeros((n_inter,1200))
 
 is_chief = (FLAGS.task_index == 0)
 
+# Define the sessions to be called on different instance
+# If there is a parameter server, use server.join() to block the server
 if FLAGS.job_name == "ps":
     server.join()
 elif FLAGS.job_name == "worker":
